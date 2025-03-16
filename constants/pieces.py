@@ -1,0 +1,53 @@
+# Constants for piece types
+PIECE_WHITE_KING = 0
+PIECE_WHITE_QUEEN = 1
+PIECE_WHITE_ROOK = 2
+PIECE_WHITE_BISHOP = 3
+PIECE_WHITE_KNIGHT = 4
+PIECE_WHITE_PAWN = 5
+PIECE_BLACK_KING = 6
+PIECE_BLACK_QUEEN = 7
+PIECE_BLACK_ROOK = 8
+PIECE_BLACK_BISHOP = 9
+PIECE_BLACK_KNIGHT = 10
+PIECE_BLACK_PAWN = 11
+
+# Mapping for FEN piece characters to bitboard index
+PIECE_MAPPING = {
+  'K': PIECE_WHITE_KING,
+  'Q': PIECE_WHITE_QUEEN,
+  'R': PIECE_WHITE_ROOK,
+  'B': PIECE_WHITE_BISHOP,
+  'N': PIECE_WHITE_KNIGHT,
+  'P': PIECE_WHITE_PAWN,
+  'k': PIECE_BLACK_KING,
+  'q': PIECE_BLACK_QUEEN,
+  'r': PIECE_BLACK_ROOK,
+  'b': PIECE_BLACK_BISHOP,
+  'n': PIECE_BLACK_KNIGHT,
+  'p': PIECE_BLACK_PAWN
+}
+
+PIECE_NAMES = {
+  PIECE_WHITE_KING: 'K',
+  PIECE_WHITE_QUEEN: 'Q',
+  PIECE_WHITE_ROOK: 'R',
+  PIECE_WHITE_BISHOP: 'B',
+  PIECE_WHITE_KNIGHT: 'N',
+  PIECE_WHITE_PAWN: 'P',
+  PIECE_BLACK_KING: 'k',
+  PIECE_BLACK_QUEEN: 'q',
+  PIECE_BLACK_ROOK: 'r',
+  PIECE_BLACK_BISHOP: 'b',
+  PIECE_BLACK_KNIGHT: 'n',
+  PIECE_BLACK_PAWN: 'p'
+}
+
+PIECE_IMAGES = {
+  PIECE_WHITE_KING: "assets/White_King.png", PIECE_WHITE_QUEEN: "assets/White_Queen.png",
+  PIECE_WHITE_ROOK: "assets/White_Rook.png", PIECE_WHITE_BISHOP: "assets/White_Bishop.png",
+  PIECE_WHITE_KNIGHT: "assets/White_Knight.png", PIECE_WHITE_PAWN: "assets/White_Pawn.png",
+  PIECE_BLACK_KING: "assets/Black_King.png", PIECE_BLACK_QUEEN: "assets/Black_Queen.png",
+  PIECE_BLACK_ROOK: "assets/Black_Rook.png", PIECE_BLACK_BISHOP: "assets/Black_Bishop.png",
+  PIECE_BLACK_KNIGHT: "assets/Black_Knight.png", PIECE_BLACK_PAWN: "assets/Black_Pawn.png"
+}
