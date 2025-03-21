@@ -113,3 +113,87 @@ class Board:
 
   def is_sliding_piece(self, piece_type):
     return self.is_queen(piece_type) or self.is_rook(piece_type) or self.is_bishop(piece_type)
+
+  def make_move(self, move):
+    from_pos, target_pos = move
+    piece_type = self.get_square_piece(from_pos)
+    piece_color = 0 if piece_type < 6 else 1
+
+    self.last_moves.append({
+      'piece_type': piece_type,
+      'from_pos': from_pos,
+      'target_pos': target_pos,
+    })
+
+    if self.is_pawn(piece_type):
+      self.handle_pawn_move(piece_type, from_pos, target_pos)
+    else:
+      self.en_passant_square = None
+
+    if self.is_king(piece_type) and target_pos in self.rook_castling_squares:
+      self.castle(piece_type, piece_color, from_pos, target_pos)
+      return
+
+    if self.is_king(piece_type):  # need to update this to check if king is in check
+      if piece_color == 0:
+        self.white_king_pos = target_pos
+      if piece_color == 1:
+        self.black_king_pos = target_pos
+
+      if from_pos in self.king_castling_squares:
+        self.king_castling_squares.discard(from_pos)
+
+    if self.is_rook(piece_type) and from_pos in self.rook_castling_squares:
+      self.rook_castling_squares.discard(from_pos)
+
+    target_piece = self.get_square_piece(target_pos)
+    if target_piece:
+      self.last_moves[-1]['target_piece_type'] = target_piece
+      self.clear_bit(target_piece, target_pos)
+
+    self.clear_bit(piece_type, from_pos)
+    self.set_bit(piece_type, target_pos)
+
+    self.all_pieces = sum(self.bitboard)
+    self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
+    self.get_attacking_squares()
+
+  def undo_move(self):
+    if not self.last_moves:
+      return
+
+    last_move = self.last_moves.pop()
+    piece_type = last_move['piece_type']
+    from_pos = last_move['from_pos']
+    target_pos = last_move['target_pos']
+    target_piece_type = last_move.get('target_piece_type')
+    castling_squares = last_move.get('castling_squares')
+    en_passant_square = last_move.get('en_passant_square')
+
+    self.en_passant_square = en_passant_square
+    if en_passant_square:
+      self.set_bit(target_piece_type, en_passant_square)
+
+    if castling_squares:
+      self.rook_castling_squares.add(target_pos)
+      self.king_castling_squares.add(from_pos)
+
+      self.clear_bit(piece_type, castling_squares[1])
+      self.clear_bit(target_piece_type, castling_squares[0])
+
+      self.set_bit(piece_type, from_pos)
+      self.set_bit(target_piece_type, target_pos)
+
+      self.all_pieces = sum(self.bitboard)
+      self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
+      self.get_attacking_squares()
+      return
+
+    self.clear_bit(piece_type, target_pos)
+    self.set_bit(piece_type, from_pos)
+
+    self.set_bit(target_piece_type, target_pos)
+
+    self.all_pieces = sum(self.bitboard)
+    self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
+    self.get_attacking_squares()
