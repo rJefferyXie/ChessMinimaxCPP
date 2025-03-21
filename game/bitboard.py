@@ -1,9 +1,11 @@
 from constants.pieces import PIECE_MAPPING, PIECE_NAMES
+from game.precomputed_moves import direction_offsets, PrecomputeMoveData
 
 class Board:
   def __init__(self):
     # Bitboard representation: 12 arrays (6 white, 6 black)
     self.bitboard = [0] * 12  # Index 0-5 = White pieces, 6-11 = Black pieces
+    self.num_squares_to_edge = PrecomputeMoveData()
     
   def setup_starting_pieces_from_fen(self, fen):
     """Set up the pieces on the bitboard based on the FEN string."""
