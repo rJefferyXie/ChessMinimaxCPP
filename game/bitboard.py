@@ -7,6 +7,7 @@ class Board:
     # Bitboard representation: 12 arrays (6 white, 6 black)
     self.bitboard = [0] * 12  # Index 0-5 = White pieces, 6-11 = Black pieces
     self.num_squares_to_edge = PrecomputeMoveData()
+    self.current_player_color = 0
 
     self.all_pieces = 0
     self.pieces_by_color = [0, 0]
