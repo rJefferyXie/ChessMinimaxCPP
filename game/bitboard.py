@@ -114,6 +114,13 @@ class Board:
   def is_sliding_piece(self, piece_type):
     return self.is_queen(piece_type) or self.is_rook(piece_type) or self.is_bishop(piece_type)
 
+  def king_in_check(self, color):
+    if color == 0:
+      return self.white_king_pos in self.black_attacking_squares
+
+    if color == 1:
+      return self.black_king_pos in self.white_attacking_squares
+
   def make_move(self, move):
     from_pos, target_pos = move
     piece_type = self.get_square_piece(from_pos)
