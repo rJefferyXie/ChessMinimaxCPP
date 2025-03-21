@@ -1,12 +1,18 @@
 from constants.pieces import PIECE_MAPPING, PIECE_NAMES
 from game.precomputed_moves import direction_offsets, PrecomputeMoveData
 
+
 class Board:
   def __init__(self):
     # Bitboard representation: 12 arrays (6 white, 6 black)
     self.bitboard = [0] * 12  # Index 0-5 = White pieces, 6-11 = Black pieces
     self.num_squares_to_edge = PrecomputeMoveData()
     
+    self.all_pieces = 0
+    self.pieces_by_color = [0, 0]
+    self.black_attacking_squares = set()
+    self.white_attacking_squares = set()
+
   def setup_starting_pieces_from_fen(self, fen):
     """Set up the pieces on the bitboard based on the FEN string."""
     row = 0
@@ -50,3 +56,31 @@ class Board:
       for piece_type in range(12):
         if self.get_bit(piece_type, square):
           print(f"Piece: {PIECE_NAMES[piece_type]} at square {i}")
+
+  def is_attacked(self, color, index):
+    if color == 0:  # player is white, check which squares black attacks
+      return index in self.black_attacking_squares
+
+    if color == 1:  # player is black, check which squares white attacks
+      return index in self.white_attacking_squares
+
+  def is_occupied(self, index):
+    return (self.all_pieces >> index) & 1  # 1 if occupied, 0 if empty
+
+  def is_occupied_by_color(self, color, index):
+    return (self.pieces_by_color[color] >> index) & 1
+
+  def get_attacking_squares(self):
+    self.white_attacking_squares.clear()
+    self.black_attacking_squares.clear()
+
+    for square in range(64):
+      piece_type = self.get_square_piece(square)
+      if piece_type:
+        piece_color = 0 if piece_type < 6 else 1
+
+        moves = self.generate_moves(piece_type, square)
+        if piece_color == 0:
+          self.white_attacking_squares.update(moves)
+        if piece_color == 1:
+          self.black_attacking_squares.update(moves)
