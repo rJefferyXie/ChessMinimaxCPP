@@ -84,3 +84,21 @@ class Board:
           self.white_attacking_squares.update(moves)
         if piece_color == 1:
           self.black_attacking_squares.update(moves)
+
+  def is_pawn(self, piece_type):
+    return piece_type == 5 or piece_type == 11
+
+  def is_knight(self, piece_type):
+    return piece_type == 4 or piece_type == 10
+
+  def is_bishop(self, piece_type):
+    return piece_type == 3 or piece_type == 9
+
+  def is_rook(self, piece_type):
+    return piece_type == 2 or piece_type == 8
+
+  def is_queen(self, piece_type):
+    return piece_type == 1 or piece_type == 7
+
+  def is_king(self, piece_type):
+    return piece_type == 0 or piece_type == 6
