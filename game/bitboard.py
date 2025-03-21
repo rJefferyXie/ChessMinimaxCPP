@@ -102,3 +102,6 @@ class Board:
 
   def is_king(self, piece_type):
     return piece_type == 0 or piece_type == 6
+
+  def is_sliding_piece(self, piece_type):
+    return self.is_queen(piece_type) or self.is_rook(piece_type) or self.is_bishop(piece_type)
