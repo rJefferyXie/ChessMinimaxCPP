@@ -2,8 +2,9 @@ from constants.pieces import PIECE_MAPPING, PIECE_NAMES
 
 class Board:
   def __init__(self):
-    self.board = [0] * 12  # One for each piece type (6 types, 2 colors each)
-
+    # Bitboard representation: 12 arrays (6 white, 6 black)
+    self.bitboard = [0] * 12  # Index 0-5 = White pieces, 6-11 = Black pieces
+    
   def setup_starting_pieces_from_fen(self, fen):
     """Set up the pieces on the bitboard based on the FEN string."""
     row = 0
