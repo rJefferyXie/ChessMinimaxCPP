@@ -268,3 +268,151 @@ class Board:
       self.en_passant_square = target_pos
     else:
       self.en_passant_square = None
+
+  def bit_scan(self, bitboard):
+    """Extracts move squares from a bitboard."""
+    moves = []
+    while bitboard:
+      index = (bitboard & -bitboard).bit_length() - 1  # Get LS1B index
+      moves.append(index)
+      bitboard &= bitboard - 1  # Clear LS1B
+    return moves
+
+  def generate_moves(self, piece_type, position):
+    piece_color = 0 if piece_type < 6 else 1
+
+    if self.is_sliding_piece(piece_type):
+      return self.generate_sliding_moves(piece_color, position)
+
+    if self.is_knight(piece_type):
+      return self.generate_knight_moves(piece_color, position)
+
+    if self.is_pawn(piece_type):
+      return self.generate_pawn_moves(piece_color, position)
+
+    if self.is_king(piece_type):
+      return self.generate_king_moves(piece_color, position)
+
+  def generate_sliding_moves(self, color, position):
+    moves = 0
+    piece_type = self.get_square_piece(position)
+    start_index = 4 if self.is_bishop(piece_type) else 0
+    end_index = 4 if self.is_rook(piece_type) else 8
+
+    for direction in range(start_index, end_index):
+      for i in range(self.num_squares_to_edge[position][direction]):
+        square = position + direction_offsets[direction] * (i + 1)
+
+        # blocked by friendly piece, can't move further in this direction
+        if self.is_occupied_by_color(color, square):
+          break
+
+        moves |= (1 << square)
+
+        # blocked by enemy piece, can't move any further in this direction
+        if self.is_occupied_by_color(not color, square):
+          break
+
+    return self.bit_scan(moves)
+
+  def generate_pawn_moves(self, color, position):
+    pawn_moves = 0
+
+    # if white, moving up
+    if color == 0:
+      if 0 <= position <= 7:  # should never be possible, pawn would have been promoted
+        return []
+
+      row_range = 2 if 48 <= position <= 55 else 1
+      for i in range(row_range):
+        square = position - 8 * (i + 1)
+
+        if self.is_occupied(square):
+          break
+
+        pawn_moves |= (1 << square)  # Set bit for each upward square
+
+      # capture diagonally
+      top_left_square, top_right_square = position - 7, position - 9
+      if self.is_occupied_by_color(not color, top_left_square):
+        pawn_moves |= (1 << top_left_square)
+
+      if self.is_occupied_by_color(not color, top_right_square):
+        pawn_moves |= (1 << top_right_square)
+
+    if color == 1:
+      if 56 <= position <= 63:  # should never be possible, pawn would have been promoted
+        return []
+
+      row_range = 2 if 8 <= position <= 15 else 1
+      for i in range(row_range):
+        square = position + 8 * (i + 1)
+
+        if self.is_occupied(square):
+          break
+
+        pawn_moves |= (1 << square)
+
+      bottom_left_square, bottom_right_square = position + 7, position + 9
+      if self.is_occupied_by_color(not color, bottom_left_square):
+        pawn_moves |= (1 << bottom_left_square)
+
+      if self.is_occupied_by_color(not color, bottom_right_square):
+        pawn_moves |= (1 << bottom_right_square)
+
+    # en passant
+    if self.en_passant_square == position - 1 or self.en_passant_square == position + 1:
+      if self.is_occupied_by_color(not color, self.en_passant_square):
+        if color == 0:
+          pawn_moves |= (1 << (self.en_passant_square - 8))
+        if color == 1:
+          pawn_moves |= (1 << (self.en_passant_square + 8))
+
+    return self.bit_scan(pawn_moves)
+
+  def generate_knight_moves(self, color, position):
+    knight_offsets = [-17, -15, -10, -6, 6, 10, 15, 17]
+    knight_moves = 0
+
+    row, col = position // 8, position % 8
+
+    for offset in knight_offsets:
+      target_pos = position + offset
+      target_row, target_col = target_pos // 8, target_pos % 8
+
+      if abs(target_row - row) > 2 or abs(target_col - col) > 2:
+        continue
+
+      if self.is_valid_move(color, target_pos):
+        knight_moves |= (1 << target_pos)
+
+    return self.bit_scan(knight_moves)
+
+  def generate_king_moves(self, color, position):
+    king_moves = 0
+
+    for direction in range(8):
+      for i in range(min(1, self.num_squares_to_edge[position][direction])):
+        square = position + direction_offsets[direction] * (i + 1)
+
+        if self.is_occupied_by_color(color, square):
+          continue
+
+        king_moves |= (1 << square)
+
+    # check left rook and right rook to see if we can castle
+    if position in self.king_castling_squares:
+      for direction in range(2, 4):
+        for i in range(self.num_squares_to_edge[position][direction]):
+          square = position + direction_offsets[direction] * (i + 1)
+
+          if self.is_occupied(square) and square not in self.rook_castling_squares:
+            break
+
+          if self.is_attacked(color, square):  # the opponent attacks a square that the castling path needs to go over
+            break
+
+          if self.is_occupied_by_color(color, square) and square in self.rook_castling_squares:
+            king_moves |= (1 << square)
+
+    return self.bit_scan(king_moves)
