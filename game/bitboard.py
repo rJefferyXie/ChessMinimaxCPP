@@ -17,6 +17,12 @@ class Board:
     self.rook_castling_squares = set([0, 7, 56, 63])
     self.black_king_pos = 4
     self.white_king_pos = 60
+    
+    # used for undo functionality
+    self.last_moves = []
+
+    # if a pawn moves 2 tiles in one turn, this will store its position until another move is played
+    self.en_passant_square = None
 
   def setup_starting_pieces_from_fen(self, fen):
     """Set up the pieces on the bitboard based on the FEN string."""
