@@ -40,6 +40,9 @@ class Board:
           self.set_bit(piece_type, bit_index)
           col += 1
       row += 1
+    self.all_pieces = sum(self.bitboard)
+    self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
+    self.get_attacking_squares()
 
   def get_piece_type(self, piece_char):
     """Map piece characters to bitboard indices."""
@@ -48,17 +51,18 @@ class Board:
   def set_bit(self, piece_type, index):
     """Set a bit for a given piece at the board index."""
     if piece_type is not None:
-      self.board[piece_type] |= (1 << index)
+      self.bitboard[piece_type] |= (1 << index)
 
   def clear_bit(self, piece_type, index):
     """Clear a bit for a given piece at the board index."""
     if piece_type is not None:
-      self.board[piece_type] &= ~(1 << index)
+      self.bitboard[piece_type] &= ~(1 << index)
 
   def get_bit(self, piece_type, index):
     """Get the bit for a given piece at the board index."""
     if piece_type is not None:
-      return (self.board[piece_type] >> index) & 1
+      return (self.bitboard[piece_type] >> index) & 1
+
     return 0
 
   def print_board(self):
@@ -384,7 +388,10 @@ class Board:
       if abs(target_row - row) > 2 or abs(target_col - col) > 2:
         continue
 
-      if self.is_valid_move(color, target_pos):
+      if not 0 <= target_pos < 64:
+        continue
+      
+      if not self.is_occupied_by_color(color, target_pos):
         knight_moves |= (1 << target_pos)
 
     return self.bit_scan(knight_moves)
