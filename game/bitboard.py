@@ -12,12 +12,12 @@ class Board:
     self.pieces_by_color = [0, 0]
     self.black_attacking_squares = set()
     self.white_attacking_squares = set()
-    
+
     self.king_castling_squares = set([4, 60])
     self.rook_castling_squares = set([0, 7, 56, 63])
     self.black_king_pos = 4
     self.white_king_pos = 60
-    
+
     # used for undo functionality
     self.last_moves = []
 
@@ -215,3 +215,56 @@ class Board:
     self.all_pieces = sum(self.bitboard)
     self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
     self.get_attacking_squares()
+
+  def castle(self, piece_type, piece_color, from_pos, target_pos):
+    rook_piece = self.get_square_piece(target_pos)
+    new_king_pos = None
+    new_castling_squares = None
+
+    if target_pos - from_pos == 3:  # short-side castle
+      new_king_pos = target_pos - 1
+      new_castling_squares = [target_pos - 2, new_king_pos]
+
+      self.clear_bit(rook_piece, target_pos)
+      self.set_bit(rook_piece, target_pos - 2)
+
+      self.clear_bit(piece_type, from_pos)
+      self.set_bit(piece_type, new_king_pos)
+
+    elif from_pos - target_pos == 4:  # long-side castle
+      new_king_pos = target_pos + 2
+      new_castling_squares = [target_pos + 3, new_king_pos]
+
+      self.clear_bit(rook_piece, target_pos)
+      self.set_bit(rook_piece, target_pos + 3)
+
+      self.clear_bit(piece_type, from_pos)
+      self.set_bit(piece_type, new_king_pos)
+
+    if piece_color == 0:
+      self.white_king_pos = new_king_pos
+    if piece_color == 1:
+      self.black_king_pos = new_king_pos
+
+    self.last_moves[-1]['target_piece_type'] = rook_piece
+    self.last_moves[-1]['castling_squares'] = new_castling_squares
+    self.king_castling_squares.discard(from_pos)
+    self.rook_castling_squares.discard(target_pos)
+    self.all_pieces = sum(self.bitboard)
+    self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
+    self.get_attacking_squares()
+
+  def handle_pawn_move(self, piece_type, from_pos, target_pos):
+    self.last_moves[-1]['en_passant_square'] = self.en_passant_square
+
+    if self.en_passant_square and (target_pos == self.en_passant_square + 8 or target_pos == self.en_passant_square - 8) and abs(from_pos - target_pos) != 16:
+      enemy_pawn = self.get_square_piece(self.en_passant_square)
+      self.last_moves[-1]['target_piece_type'] = enemy_pawn
+
+      if piece_type != enemy_pawn:
+        self.clear_bit(enemy_pawn, self.en_passant_square)  # perform en passant
+
+    if abs(from_pos - target_pos) == 16:
+      self.en_passant_square = target_pos
+    else:
+      self.en_passant_square = None
