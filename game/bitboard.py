@@ -12,6 +12,11 @@ class Board:
     self.pieces_by_color = [0, 0]
     self.black_attacking_squares = set()
     self.white_attacking_squares = set()
+    
+    self.king_castling_squares = set([4, 60])
+    self.rook_castling_squares = set([0, 7, 56, 63])
+    self.black_king_pos = 4
+    self.white_king_pos = 60
 
   def setup_starting_pieces_from_fen(self, fen):
     """Set up the pieces on the bitboard based on the FEN string."""
