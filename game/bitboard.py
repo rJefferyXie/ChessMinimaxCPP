@@ -7,7 +7,7 @@ class Board:
     # Bitboard representation: 12 arrays (6 white, 6 black)
     self.bitboard = [0] * 12  # Index 0-5 = White pieces, 6-11 = Black pieces
     self.num_squares_to_edge = PrecomputeMoveData()
-    
+
     self.all_pieces = 0
     self.pieces_by_color = [0, 0]
     self.black_attacking_squares = set()
@@ -56,6 +56,14 @@ class Board:
       for piece_type in range(12):
         if self.get_bit(piece_type, square):
           print(f"Piece: {PIECE_NAMES[piece_type]} at square {i}")
+
+  def get_square_piece(self, index):
+    if not self.is_occupied(index):
+      return None
+
+    for piece_type in range(12):
+      if self.get_bit(piece_type, index):
+        return piece_type
 
   def is_attacked(self, color, index):
     if color == 0:  # player is white, check which squares black attacks
