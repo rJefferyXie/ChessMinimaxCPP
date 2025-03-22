@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from game.bitboard import Board
-from constants.fen import STARTING_BOARD, STARTING_BOARD_NO_PAWNS
+from constants.fen import STARTING_BOARD, KIWIPETE, POSITION3
 from constants.pieces import PIECE_IMAGES
 
 
@@ -10,7 +10,7 @@ class GameWindow(QWidget):
   def __init__(self):
     super().__init__()
     self.board = Board()
-    self.board.setup_starting_pieces_from_fen(STARTING_BOARD)
+    self.board.setup_starting_pieces_from_fen(POSITION3)
     self.labels = [None] * 64
 
     self.create_window()
@@ -65,11 +65,9 @@ class GameWindow(QWidget):
 
       if self.selected_piece != None and square_index in self.valid_moves:
         self.board.make_move((self.selected_square, square_index))
-        if self.board.king_in_check(self.board.current_player_color):
+        if self.board.king_in_check(1 - self.board.current_player_color):
           self.board.undo_move()
-        else:
-          self.board.current_player_color = 1 if self.board.current_player_color == 0 else 0
-        
+
         self.display_pieces()
         self.reset_selection()
         return
