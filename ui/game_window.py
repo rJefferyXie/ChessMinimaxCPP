@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QKeyEvent
 from game.bitboard import Board
 from constants.fen import STARTING_BOARD, KIWIPETE, POSITION3
 from constants.pieces import PIECE_IMAGES
@@ -44,6 +44,8 @@ class GameWindow(QWidget):
 
         self.labels[row * 8 + col] = label
         grid.addWidget(label, row, col)
+    
+    self.installEventFilter(self)
 
   def display_pieces(self):
     """Display the pieces on the board based on the bitboard array."""
@@ -96,6 +98,16 @@ class GameWindow(QWidget):
     self.selected_piece = None
     self.selected_square = None
     self.reset_highlight()
+
+  def eventFilter(self, obj, event):
+    """Event filter to handle key press for 'u'."""
+    if event.type() == QKeyEvent.Type.KeyPress:
+        if isinstance(event, QKeyEvent):
+            if event.key() == Qt.Key.Key_U:
+                self.board.undo_move()
+                self.display_pieces()
+                return True
+    return super().eventFilter(obj, event)
 
   def reset_highlight(self):
     """Reset the highlight on all squares."""
