@@ -212,6 +212,8 @@ class Board:
     self.en_passant_square = last_move['en_passant_square']
 
     piece_type = last_move['piece_type']
+    piece_color = 0 if piece_type < 6 else 1
+
     from_pos = last_move['from_pos']
     target_pos = last_move['target_pos']
     target_piece_type = last_move.get('target_piece_type')
@@ -225,7 +227,8 @@ class Board:
     if removed_king_castling_square:
       self.king_castling_squares.add(removed_king_castling_square)
 
-    if self.en_passant_square and self.is_pawn(target_piece_type) and self.is_pawn(piece_type):
+    dir = -8 if piece_color == 0 else 8
+    if self.is_pawn(piece_type) and abs(target_pos - dir) == self.en_passant_square:
       self.set_bit(target_piece_type, self.en_passant_square)
     else:
       self.set_bit(target_piece_type, target_pos)
