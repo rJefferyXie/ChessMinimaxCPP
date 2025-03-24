@@ -1,80 +1,140 @@
 from game.bitboard import Board
 from constants.fen import STARTING_BOARD, KIWIPETE, POSITION3
-from constants.pieces import SQUARES_MAP
+from constants.pieces import SQUARES_MAP, PIECE_IMAGES
 
 from collections import defaultdict
 
-board = Board()
-board.setup_starting_pieces_from_fen(KIWIPETE)
-moves_by_type = defaultdict(int)
-moves_by_square = defaultdict(int)
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QLabel
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPixmap
+import sys
 
-def perft(depth):
-  if depth == 0:
-    return 1
+class GameWindow(QWidget):
+  def __init__(self):
+    super().__init__()
+    self.board = Board()
+    self.board.setup_starting_pieces_from_fen(POSITION3)
+    self.labels = [None] * 64
+    self.moves_by_type = defaultdict(int)
+    self.moves_by_square = defaultdict(int)
 
-  moves = get_legal_moves()
-  num_positions = 0
+    self.move_index = 0
+    self.move_list = []
+    self.create_window()
+    self.display_pieces()
+    print(self.perft(2))
+    print(self.moves_by_square)
+    print(self.moves_by_type)
 
-  for move in moves:
-    piece_type = board.get_square_piece(move[0])
-    if board.is_knight(piece_type):
-      moves_by_square["N" + SQUARES_MAP[move[1]]] += 1
-    if board.is_pawn(piece_type):
-      moves_by_square[SQUARES_MAP[move[1]]] += 1
+    self.timer = QTimer()
+    self.timer.timeout.connect(self.play_next_move)
+    self.timer.start(200)
 
-    move_type = board.make_move(move)
-    moves_by_type[move_type] += 1
+    self.selected_piece = None
+    self.selected_square = None
+    self.valid_moves = []
 
-    if board.king_in_check(board.current_player_color):
-      moves_by_type["checks"] += 1
+  def create_window(self):
+    self.setWindowTitle('8x8 Chess Board')
+    self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
 
-    num_positions += perft(depth - 1)
-    board.undo_move()
+    grid = QGridLayout()
+    grid.setSpacing(0)
+    grid.setContentsMargins(0, 0, 0, 0)
+    self.setLayout(grid)
+    self.setGeometry(100, 100, 480, 480)
 
-  return num_positions
+    for row in range(8):
+      for col in range(8):
+        label = QLabel()
+        label.setFixedSize(60, 60)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-def get_legal_moves():
-  moves = []
-  for square in range(64):
-    piece_type = board.get_square_piece(square)
-    if piece_type == None:
-      continue
+        if (row + col) % 2 == 0:
+          label.setStyleSheet("background-color: rgb(232, 235, 239);")
+        else:
+          label.setStyleSheet("background-color: rgb(125, 135, 150);")
 
-    piece_color = 0 if piece_type < 6 else 1
-    if piece_color == board.current_player_color:
-      for target_pos in board.generate_moves(piece_type, square):
-        moves.append((square, target_pos))
+        self.labels[row * 8 + col] = label
+        grid.addWidget(label, row, col)
+
+  def perft(self, depth):
+    if depth == 0:
+      return 1
+
+    moves = self.get_legal_moves()
+    num_positions = 0
+
+    for move in moves:
+      try:
+        piece_type = self.board.get_square_piece(move[0])
+        if self.board.is_knight(piece_type):
+          self.moves_by_square["N" + SQUARES_MAP[move[1]]] += 1
+        if self.board.is_pawn(piece_type):
+          self.moves_by_square[SQUARES_MAP[move[1]]] += 1
+
+        self.move_list.append(move)
+        move_type = self.board.make_move(move)
+        self.moves_by_type[move_type] += 1
+        
+        if self.board.king_in_check(self.board.current_player_color):
+          self.moves_by_type["checks"] += 1
+
+        num_positions += self.perft(depth - 1)
+
+        self.move_list.append("undo")
+        self.board.undo_move()
+      except Exception as e:
+        print(f"Error processing:  + {move}")
+
+    return num_positions
+
+  def get_legal_moves(self):
+    moves = []
+    for square in range(64):
+      piece_type = self.board.get_square_piece(square)
+      if piece_type == None:
+        continue
+
+      piece_color = 0 if piece_type < 6 else 1
+      if piece_color == self.board.current_player_color:
+        for target_pos in self.board.generate_moves(piece_type, square):
+          moves.append((square, target_pos))
+    
+    legal_moves = []
+    for move in moves:
+      self.board.make_move(move)
+      if not self.board.king_in_check(1 - self.board.current_player_color):
+        legal_moves.append(move)
+      self.board.undo_move()
+    
+    return legal_moves
+
+  def display_pieces(self):
+    """Display the pieces on the board based on the bitboard array."""
+    for square in range(64):
+      piece_type = self.board.get_square_piece(square)
+      if piece_type != None:
+        pixmap = QPixmap(PIECE_IMAGES[piece_type])
+        pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio)
+        self.labels[square].setPixmap(pixmap)
+      else:
+        self.labels[square].clear()
   
-  legal_moves = []
-  for move in moves:
-    board.make_move(move)
-    if not board.king_in_check(1 - board.current_player_color):
-      legal_moves.append(move)
-    board.undo_move()
-  
-  return legal_moves
+  def play_next_move(self):
+    if self.move_index < len(self.move_list):
+      move = self.move_list[self.move_index]
+      if move == "undo":
+        self.board.undo_move()
+      else:
+        self.board.make_move(move)
 
-print(perft(1))
-print(moves_by_type)
-# print(sorted(moves_by_square.items(), key=lambda x: (-x[1], x[0])))
-moves_by_type.clear()
-moves_by_square.clear()
+      self.display_pieces()
+      self.move_index += 1
+    else:
+      self.timer.stop()  # Stop when all moves are played
 
-print(perft(2))
-print(moves_by_type)
-# print(sorted(moves_by_square.items(), key=lambda x: (-x[1], x[0])))
-moves_by_type.clear()
-moves_by_square.clear()
-
-print(perft(3))
-print(moves_by_type)
-# # print(sorted(moves_by_square.items(), key=lambda x: (-x[1], x[0])))
-# moves_by_type.clear()
-# moves_by_square.clear()
-
-# print(perft(4))
-# print(moves_by_type)
-# # print(sorted(moves_by_square.items(), key=lambda x: (-x[1], x[0])))
-# moves_by_type.clear()
-# moves_by_square.clear()
+app = QApplication(sys.argv)
+ex = GameWindow()
+ex.show()
+sys.exit(app.exec())
