@@ -5,11 +5,14 @@ from game.game import Game
 from constants.fen import STARTING_BOARD, KIWIPETE, POSITION3
 from constants.pieces import PIECE_IMAGES
 
+from players.minimax_player_v0 import ComputerPlayer
+
 
 class GameWindow(QWidget):
   def __init__(self):
     super().__init__()
     self.game = Game()
+    self.computer = ComputerPlayer("black")
 
     self.labels = [None] * 64
 
@@ -62,7 +65,6 @@ class GameWindow(QWidget):
     def on_click(_):
       self.reset_highlight()
       square_index = row * 8 + col
-      # print(square_index)
       piece_type = self.game.board.get_square_piece(square_index)
 
       if self.selected_piece != None and square_index in self.valid_moves:
@@ -70,6 +72,12 @@ class GameWindow(QWidget):
         if self.game.king_in_check(1 - self.game.current_player_color):
           self.game.undo_move()
 
+        self.display_pieces()
+        self.reset_selection()
+
+        ai_move = self.computer.minimax(1, self.game, float('-inf'), float('inf'), False)
+        self.game.make_move(ai_move)
+        
         self.display_pieces()
         self.reset_selection()
         return
