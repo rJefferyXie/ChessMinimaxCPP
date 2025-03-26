@@ -12,7 +12,7 @@ import sys
 
 # change these for testing purposes as you need
 # https://www.chessprogramming.org/Perft_Results
-SEARCH_DEPTH = 4
+SEARCH_DEPTH = 3
 SEARCH_BOARD = STARTING_BOARD
 
 
@@ -69,7 +69,7 @@ class GameWindow(QWidget):
     if depth == 0:
       return 1
 
-    moves = self.get_legal_moves()
+    moves = self.game.get_legal_moves()
     num_positions = 0
 
     for move in moves:
@@ -113,27 +113,6 @@ class GameWindow(QWidget):
     for depth, counts in results_by_depths.items():
       if counts:
         print(f"Depth: {depth + 1} --> {counts}")
-
-  def get_legal_moves(self):
-    moves = []
-    for square in range(64):
-      piece_type = self.game.board.get_square_piece(square)
-      if piece_type == None:
-        continue
-
-      piece_color = 0 if piece_type < 6 else 1
-      if piece_color == self.game.current_player_color:
-        for target_pos in self.game.board.generate_moves(piece_type, square):
-          moves.append((square, target_pos))
-
-    legal_moves = []
-    for move in moves:
-      self.game.make_move(move)
-      if not self.game.king_in_check(1 - self.game.current_player_color):
-        legal_moves.append(move)
-      self.game.undo_move()
-
-    return legal_moves
 
   def display_pieces(self):
     for square in range(64):
