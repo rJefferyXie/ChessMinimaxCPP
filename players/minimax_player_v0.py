@@ -1,5 +1,3 @@
-from constants.computer import WHITE, BLACK
-
 class ComputerPlayer:
   def __init__(self, color):
     self.color = color
