@@ -143,6 +143,27 @@ class Board:
     if color == 1:
       return self.black_king_pos in self.white_attacking_squares
 
+  def detect_checkmate(self):
+    moves = []
+    for square in range(64):
+      piece_type = self.get_square_piece(square)
+      if piece_type == None:
+        continue
+
+      piece_color = 0 if piece_type < 6 else 1
+      if piece_color == self.current_player_color:
+        for target_pos in self.generate_moves(piece_type, square):
+          moves.append((square, target_pos))
+
+    for move in moves:
+      self.make_move(move)
+      if not self.king_in_check(1 - self.current_player_color):
+        self.undo_move()
+        return False
+      self.undo_move()
+    
+    return True
+
   def make_move(self, move):
     from_pos, target_pos = move
     piece_type = self.get_square_piece(from_pos)
@@ -201,6 +222,10 @@ class Board:
     self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
     self.get_attacking_squares()
     self.current_player_color = 1 - self.current_player_color
+
+    if self.king_in_check(self.current_player_color):
+      if self.detect_checkmate():
+        move_type = "checkmate"
 
     return move_type
 
