@@ -7,7 +7,6 @@ class Board:
     # Bitboard representation: 12 arrays (6 white, 6 black)
     self.bitboard = [0] * 12  # Index 0-5 = White pieces, 6-11 = Black pieces
     self.num_squares_to_edge = PrecomputeMoveData()
-    self.current_player_color = 0
 
     self.all_pieces = 0
     self.pieces_by_color = [0, 0]
@@ -18,9 +17,6 @@ class Board:
     self.rook_castling_squares = set([0, 7, 56, 63])
     self.black_king_pos = 4
     self.white_king_pos = 60
-
-    # used for undo functionality
-    self.last_moves = []
 
     # if a pawn moves 2 tiles in one turn, this will store its position until another move is played
     self.en_passant_square = None
@@ -105,7 +101,7 @@ class Board:
 
         if piece_type == 0:
           self.white_king_pos = square
-        
+
         if piece_type == 6:
           self.black_king_pos = square
 
@@ -135,184 +131,6 @@ class Board:
 
   def is_sliding_piece(self, piece_type):
     return self.is_queen(piece_type) or self.is_rook(piece_type) or self.is_bishop(piece_type)
-
-  def king_in_check(self, color):
-    if color == 0:
-      return self.white_king_pos in self.black_attacking_squares
-
-    if color == 1:
-      return self.black_king_pos in self.white_attacking_squares
-
-  def detect_checkmate(self):
-    moves = []
-    for square in range(64):
-      piece_type = self.get_square_piece(square)
-      if piece_type == None:
-        continue
-
-      piece_color = 0 if piece_type < 6 else 1
-      if piece_color == self.current_player_color:
-        for target_pos in self.generate_moves(piece_type, square):
-          moves.append((square, target_pos))
-
-    for move in moves:
-      self.make_move(move)
-      if not self.king_in_check(1 - self.current_player_color):
-        self.undo_move()
-        return False
-      self.undo_move()
-    
-    return True
-
-  def make_move(self, move):
-    from_pos, target_pos = move
-    piece_type = self.get_square_piece(from_pos)
-    piece_color = 0 if piece_type < 6 else 1
-    move_type = "standard"
-
-    self.last_moves.append({
-      'piece_type': piece_type,
-      'from_pos': from_pos,
-      'target_pos': target_pos,
-      'en_passant_square': self.en_passant_square,
-    })
-
-    # pawn stuff
-    dir = -8 if piece_color == 0 else 8
-    if self.is_pawn(piece_type) and abs(target_pos - dir) == self.en_passant_square:
-      enemy_pawn = self.get_square_piece(self.en_passant_square)
-      self.last_moves[-1]['target_piece_type'] = enemy_pawn
-      self.clear_bit(enemy_pawn, self.en_passant_square)  # perform en passant
-      move_type = "en-passant"
-    
-    if self.is_pawn(piece_type) and abs(target_pos - from_pos) == 16:
-      self.en_passant_square = target_pos
-    else:
-      self.en_passant_square = None
-
-    if self.is_king(piece_type):
-      if piece_color == 0:
-        self.white_king_pos = target_pos
-      if piece_color == 1:
-        self.black_king_pos = target_pos
-        
-      if from_pos in self.king_castling_squares:
-        self.last_moves[-1]['king_castling_square'] = from_pos
-        self.king_castling_squares.discard(from_pos)
-
-      if target_pos in self.rook_castling_squares:
-        self.castle(piece_type, piece_color, from_pos, target_pos)
-        move_type = "castle"
-      
-    if self.is_rook(piece_type) and from_pos in self.rook_castling_squares:
-      self.last_moves[-1]['rook_castling_square'] = from_pos
-      self.rook_castling_squares.discard(from_pos)
-
-    target_piece = self.get_square_piece(target_pos)
-    if target_piece:
-      self.last_moves[-1]['target_piece_type'] = target_piece
-      self.clear_bit(target_piece, target_pos)
-      move_type = "capture"
-
-    if move_type != "castle":
-      self.clear_bit(piece_type, from_pos)
-      self.set_bit(piece_type, target_pos)
-
-    self.all_pieces = sum(self.bitboard)
-    self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
-    self.get_attacking_squares()
-    self.current_player_color = 1 - self.current_player_color
-
-    if self.king_in_check(self.current_player_color):
-      if self.detect_checkmate():
-        move_type = "checkmate"
-
-    return move_type
-
-  def undo_move(self):
-    if not self.last_moves:
-      return
-
-    last_move = self.last_moves.pop()
-    self.en_passant_square = last_move['en_passant_square']
-
-    piece_type = last_move['piece_type']
-    piece_color = 0 if piece_type < 6 else 1
-
-    from_pos = last_move['from_pos']
-    target_pos = last_move['target_pos']
-    target_piece_type = last_move.get('target_piece_type')
-    castling_squares = last_move.get('castling_squares')
-    removed_rook_castling_square = last_move.get('rook_castling_square')
-    removed_king_castling_square = last_move.get('king_castling_square')
-
-    if removed_rook_castling_square != None:
-      self.rook_castling_squares.add(removed_rook_castling_square)
-    
-    if removed_king_castling_square:
-      self.king_castling_squares.add(removed_king_castling_square)
-
-    dir = -8 if piece_color == 0 else 8
-    if self.is_pawn(piece_type) and abs(target_pos - dir) == self.en_passant_square:
-      self.set_bit(target_piece_type, self.en_passant_square)
-    else:
-      self.set_bit(target_piece_type, target_pos)
-
-    if castling_squares:
-      self.rook_castling_squares.add(target_pos)
-      self.king_castling_squares.add(from_pos)
-
-      self.clear_bit(piece_type, castling_squares[1])
-      self.clear_bit(target_piece_type, castling_squares[0])
-
-      self.set_bit(piece_type, from_pos)
-      self.set_bit(target_piece_type, target_pos)
-
-    self.clear_bit(piece_type, target_pos)
-    self.set_bit(piece_type, from_pos)
-
-    self.all_pieces = sum(self.bitboard)
-    self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
-    self.get_attacking_squares()
-    self.current_player_color = 1 - self.current_player_color
-
-  def castle(self, piece_type, piece_color, from_pos, target_pos):
-    rook_piece = self.get_square_piece(target_pos)
-    new_king_pos = None
-    new_castling_squares = None
-
-    if target_pos - from_pos == 3:  # short-side castle
-      new_king_pos = target_pos - 1
-      new_castling_squares = [target_pos - 2, new_king_pos]
-
-      self.clear_bit(rook_piece, target_pos)
-      self.set_bit(rook_piece, target_pos - 2)
-
-      self.clear_bit(piece_type, from_pos)
-      self.set_bit(piece_type, new_king_pos)
-
-    elif from_pos - target_pos == 4:  # long-side castle
-      new_king_pos = target_pos + 2
-      new_castling_squares = [target_pos + 3, new_king_pos]
-
-      self.clear_bit(rook_piece, target_pos)
-      self.set_bit(rook_piece, target_pos + 3)
-
-      self.clear_bit(piece_type, from_pos)
-      self.set_bit(piece_type, new_king_pos)
-
-    if piece_color == 0:
-      self.white_king_pos = new_king_pos
-    if piece_color == 1:
-      self.black_king_pos = new_king_pos
-
-    self.last_moves[-1]['target_piece_type'] = rook_piece
-    self.last_moves[-1]['castling_squares'] = new_castling_squares
-    self.king_castling_squares.discard(from_pos)
-    self.rook_castling_squares.discard(target_pos)
-    self.all_pieces = sum(self.bitboard)
-    self.pieces_by_color = [sum(self.bitboard[:6]), sum(self.bitboard[6:])]
-    self.get_attacking_squares()
 
   def bit_scan(self, bitboard):
     """Extracts move squares from a bitboard."""
@@ -408,7 +226,7 @@ class Board:
     # en passant
     if self.en_passant_square:
       en_passant_left = position - 1
-      en_passant_right =  position + 1
+      en_passant_right = position + 1
 
       if (en_passant_left % 8 != 7 and self.en_passant_square == en_passant_left) or (en_passant_right % 8 != 0 and self.en_passant_square == en_passant_right):
         if self.is_occupied_by_color(not color, self.en_passant_square):
@@ -434,7 +252,7 @@ class Board:
 
       if not 0 <= target_pos < 64:
         continue
-      
+
       if not self.is_occupied_by_color(color, target_pos):
         knight_moves |= (1 << target_pos)
 
@@ -461,7 +279,8 @@ class Board:
           if self.is_occupied(square) and square not in self.rook_castling_squares:
             break
 
-          if self.is_attacked(color, square) and abs(position - square) <= 2:  # the opponent attacks a square that the castling path needs to go over
+          # the opponent attacks a square that the castling path needs to go over
+          if self.is_attacked(color, square) and abs(position - square) <= 2:
             break
 
           if self.is_occupied_by_color(color, square) and square in self.rook_castling_squares:

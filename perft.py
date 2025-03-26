@@ -1,4 +1,4 @@
-from game.bitboard import Board
+from game.game import Game
 from constants.fen import STARTING_BOARD, KIWIPETE, POSITION3
 from constants.pieces import SQUARES_MAP, PIECE_IMAGES
 
@@ -18,8 +18,8 @@ SEARCH_BOARD = STARTING_BOARD
 class GameWindow(QWidget):
   def __init__(self):
     super().__init__()
-    self.board = Board()
-    self.board.setup_starting_pieces_from_fen(SEARCH_BOARD)
+    self.game = Game()
+    self.game.board.setup_starting_pieces_from_fen(SEARCH_BOARD)
     self.labels = [None] * 64
     self.moves_by_type = defaultdict(int)
     self.moves_by_square = defaultdict(int)
@@ -73,26 +73,26 @@ class GameWindow(QWidget):
 
     for move in moves:
       try:
-        piece_type = self.board.get_square_piece(move[0])
-        if self.board.is_knight(piece_type):
+        piece_type = self.game.board.get_square_piece(move[0])
+        if self.game.board.is_knight(piece_type):
           self.moves_by_square["N" + SQUARES_MAP[move[1]]] += 1
-        if self.board.is_pawn(piece_type):
+        if self.game.board.is_pawn(piece_type):
           self.moves_by_square[SQUARES_MAP[move[1]]] += 1
 
         self.move_list.append(move)
-        move_type = self.board.make_move(move)
+        move_type = self.game.make_move(move)
         self.moves_by_type[(depth, move_type)] += 1
 
         if move_type == "en-passant":
           self.moves_by_type[(depth, "capture")] += 1
 
-        if self.board.king_in_check(self.board.current_player_color):
+        if self.game.king_in_check(self.game.current_player_color):
           self.moves_by_type[(depth, "checks")] += 1
 
         num_positions += self.perft(depth - 1)
 
         self.move_list.append("undo")
-        self.board.undo_move()
+        self.game.undo_move()
       except Exception as e:
         print(f"Error processing move: {move}")
 
@@ -116,27 +116,27 @@ class GameWindow(QWidget):
   def get_legal_moves(self):
     moves = []
     for square in range(64):
-      piece_type = self.board.get_square_piece(square)
+      piece_type = self.game.board.get_square_piece(square)
       if piece_type == None:
         continue
 
       piece_color = 0 if piece_type < 6 else 1
-      if piece_color == self.board.current_player_color:
-        for target_pos in self.board.generate_moves(piece_type, square):
+      if piece_color == self.game.current_player_color:
+        for target_pos in self.game.board.generate_moves(piece_type, square):
           moves.append((square, target_pos))
 
     legal_moves = []
     for move in moves:
-      self.board.make_move(move)
-      if not self.board.king_in_check(1 - self.board.current_player_color):
+      self.game.make_move(move)
+      if not self.game.king_in_check(1 - self.game.current_player_color):
         legal_moves.append(move)
-      self.board.undo_move()
+      self.game.undo_move()
 
     return legal_moves
 
   def display_pieces(self):
     for square in range(64):
-      piece_type = self.board.get_square_piece(square)
+      piece_type = self.game.board.get_square_piece(square)
       if piece_type != None:
         pixmap = QPixmap(PIECE_IMAGES[piece_type])
         pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio)
@@ -148,9 +148,9 @@ class GameWindow(QWidget):
     if self.move_index < len(self.move_list):
       move = self.move_list[self.move_index]
       if move == "undo":
-        self.board.undo_move()
+        self.game.undo_move()
       else:
-        self.board.make_move(move)
+        self.game.make_move(move)
 
       self.display_pieces()
       self.move_index += 1
