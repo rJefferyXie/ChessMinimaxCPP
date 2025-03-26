@@ -11,7 +11,7 @@ import sys
 
 
 # change these for testing purposes as you need
-SEARCH_DEPTH = 2
+SEARCH_DEPTH = 3
 SEARCH_BOARD = KIWIPETE
 
 
