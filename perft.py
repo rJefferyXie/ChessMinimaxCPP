@@ -11,8 +11,8 @@ import sys
 
 
 # change these for testing purposes as you need
-SEARCH_DEPTH = 3
-SEARCH_BOARD = KIWIPETE
+SEARCH_DEPTH = 4
+SEARCH_BOARD = STARTING_BOARD
 
 
 class GameWindow(QWidget):
@@ -82,6 +82,9 @@ class GameWindow(QWidget):
         self.move_list.append(move)
         move_type = self.board.make_move(move)
         self.moves_by_type[(depth, move_type)] += 1
+
+        if move_type == "en-passant":
+          self.moves_by_type[(depth, "capture")] += 1
 
         if self.board.king_in_check(self.board.current_player_color):
           self.moves_by_type[(depth, "checks")] += 1
