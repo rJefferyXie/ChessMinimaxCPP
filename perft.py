@@ -9,11 +9,17 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap
 import sys
 
+
+# change these for testing purposes as you need
+SEARCH_DEPTH = 2
+SEARCH_BOARD = KIWIPETE
+
+
 class GameWindow(QWidget):
   def __init__(self):
     super().__init__()
     self.board = Board()
-    self.board.setup_starting_pieces_from_fen(POSITION3)
+    self.board.setup_starting_pieces_from_fen(SEARCH_BOARD)
     self.labels = [None] * 64
     self.moves_by_type = defaultdict(int)
     self.moves_by_square = defaultdict(int)
@@ -22,9 +28,9 @@ class GameWindow(QWidget):
     self.move_list = []
     self.create_window()
     self.display_pieces()
-    print(self.perft(2))
-    print(self.moves_by_square)
-    print(self.moves_by_type)
+
+    print(self.perft(SEARCH_DEPTH))
+    self.print_move_type_results()
 
     self.timer = QTimer()
     self.timer.timeout.connect(self.play_next_move)
@@ -75,19 +81,34 @@ class GameWindow(QWidget):
 
         self.move_list.append(move)
         move_type = self.board.make_move(move)
-        self.moves_by_type[move_type] += 1
-        
+        self.moves_by_type[(depth, move_type)] += 1
+
         if self.board.king_in_check(self.board.current_player_color):
-          self.moves_by_type["checks"] += 1
+          self.moves_by_type[(depth, "checks")] += 1
 
         num_positions += self.perft(depth - 1)
 
         self.move_list.append("undo")
         self.board.undo_move()
       except Exception as e:
-        print(f"Error processing:  + {move}")
+        print(f"Error processing move: {move}")
 
     return num_positions
+
+  def print_move_type_results(self):
+    results_by_depths = defaultdict(dict)
+    for depth, move_type in self.moves_by_type.keys():
+      if move_type == "standard":
+        continue
+
+      if move_type in results_by_depths[SEARCH_DEPTH - depth]:
+        results_by_depths[SEARCH_DEPTH - depth][move_type] += self.moves_by_type[(depth, move_type)]
+      else:
+        results_by_depths[SEARCH_DEPTH - depth][move_type] = self.moves_by_type[(depth, move_type)]
+
+    for depth, counts in results_by_depths.items():
+      if counts:
+        print(f"Depth: {depth + 1} --> {counts}")
 
   def get_legal_moves(self):
     moves = []
@@ -100,18 +121,17 @@ class GameWindow(QWidget):
       if piece_color == self.board.current_player_color:
         for target_pos in self.board.generate_moves(piece_type, square):
           moves.append((square, target_pos))
-    
+
     legal_moves = []
     for move in moves:
       self.board.make_move(move)
       if not self.board.king_in_check(1 - self.board.current_player_color):
         legal_moves.append(move)
       self.board.undo_move()
-    
+
     return legal_moves
 
   def display_pieces(self):
-    """Display the pieces on the board based on the bitboard array."""
     for square in range(64):
       piece_type = self.board.get_square_piece(square)
       if piece_type != None:
@@ -120,7 +140,7 @@ class GameWindow(QWidget):
         self.labels[square].setPixmap(pixmap)
       else:
         self.labels[square].clear()
-  
+
   def play_next_move(self):
     if self.move_index < len(self.move_list):
       move = self.move_list[self.move_index]
@@ -133,6 +153,7 @@ class GameWindow(QWidget):
       self.move_index += 1
     else:
       self.timer.stop()  # Stop when all moves are played
+
 
 app = QApplication(sys.argv)
 ex = GameWindow()
