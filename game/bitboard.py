@@ -221,7 +221,7 @@ class Board:
     removed_rook_castling_square = last_move.get('rook_castling_square')
     removed_king_castling_square = last_move.get('king_castling_square')
 
-    if removed_rook_castling_square:
+    if removed_rook_castling_square != None:
       self.rook_castling_squares.add(removed_rook_castling_square)
     
     if removed_king_castling_square:
@@ -428,7 +428,7 @@ class Board:
         king_moves |= (1 << square)
 
     # check left rook and right rook to see if we can castle
-    if position in self.king_castling_squares:
+    if position in self.king_castling_squares and not self.is_attacked(color, position):
       for direction in range(2, 4):
         for i in range(self.num_squares_to_edge[position][direction]):
           square = position + direction_offsets[direction] * (i + 1)
@@ -436,7 +436,7 @@ class Board:
           if self.is_occupied(square) and square not in self.rook_castling_squares:
             break
 
-          if self.is_attacked(color, square):  # the opponent attacks a square that the castling path needs to go over
+          if self.is_attacked(color, square) and abs(position - square) <= 2:  # the opponent attacks a square that the castling path needs to go over
             break
 
           if self.is_occupied_by_color(color, square) and square in self.rook_castling_squares:
