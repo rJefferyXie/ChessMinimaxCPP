@@ -11,6 +11,7 @@ import sys
 
 
 # change these for testing purposes as you need
+# https://www.chessprogramming.org/Perft_Results
 SEARCH_DEPTH = 4
 SEARCH_BOARD = STARTING_BOARD
 
