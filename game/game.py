@@ -20,6 +20,9 @@ class Game:
       return self.board.black_king_pos in self.board.white_attacking_squares
 
   def is_checkmate(self):
+    if not self.king_in_check(self.current_player_color):
+      return False
+
     moves = []
     for square in range(64):
       piece_type = self.board.get_square_piece(square)
@@ -119,10 +122,6 @@ class Game:
     self.board.pieces_by_color = [sum(self.board.bitboard[:6]), sum(self.board.bitboard[6:])]
     self.board.get_attacking_squares()
     self.current_player_color = 1 - self.current_player_color
-
-    if self.king_in_check(self.current_player_color):
-      if self.is_checkmate():
-        move_type = "checkmate"
 
     return move_type
 

@@ -89,6 +89,9 @@ class GameWindow(QWidget):
 
         if self.game.king_in_check(self.game.current_player_color):
           self.moves_by_type[(depth, "checks")] += 1
+        
+        if self.game.is_checkmate():
+          self.moves_by_type[(depth, "checkmates")] += 1
 
         num_positions += self.perft(depth - 1)
 

@@ -1,11 +1,14 @@
+import threading
+
 from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QKeyEvent
-from game.game import Game
-from constants.fen import STARTING_BOARD, KIWIPETE, POSITION3
-from constants.pieces import PIECE_IMAGES
+from playsound import playsound
 
+from game.game import Game
+from constants.pieces import PIECE_IMAGES
 from players.minimax_player_v0 import ComputerPlayer
+from players.helper import reset_evaluation_stats, print_evaluation_stats
 
 
 class GameWindow(QWidget):
@@ -13,12 +16,13 @@ class GameWindow(QWidget):
     super().__init__()
     self.game = Game()
     self.computer = ComputerPlayer("black")
+    self.ai_thinking = False
 
     self.labels = [None] * 64
 
     self.create_window()
     self.display_pieces()
-
+    self.prev_squares = []
     self.selected_piece = None
     self.selected_square = None
     self.valid_moves = []
@@ -47,7 +51,7 @@ class GameWindow(QWidget):
 
         self.labels[row * 8 + col] = label
         grid.addWidget(label, row, col)
-    
+
     self.installEventFilter(self)
 
   def display_pieces(self):
@@ -61,26 +65,55 @@ class GameWindow(QWidget):
       else:
         self.labels[square].clear()
 
+  def multithread_minimax(self):
+    move = self.computer.minimax(3, self.game, float('-inf'), float('inf'), False)[0]
+    move_type = self.game.make_move(move)
+    if self.game.is_checkmate():
+      print("checkmate")
+
+    # refactor later with all the different move types
+    if move_type == "capture" or move_type == "en-passant":
+      playsound("assets/sounds/capture.mp3")
+    else:
+      playsound("assets/sounds/move-self.mp3")
+
+    self.prev_squares = move
+    self.display_pieces()
+    self.reset_selection()
+    print_evaluation_stats(self.computer)
+    reset_evaluation_stats(self.computer)
+    self.ai_thinking = False
+
   def handle_square_click(self, row, col):
     def on_click(_):
+      if self.ai_thinking:
+        return
+
       self.reset_highlight()
       square_index = row * 8 + col
       piece_type = self.game.board.get_square_piece(square_index)
 
       if self.selected_piece != None and square_index in self.valid_moves:
-        self.game.make_move((self.selected_square, square_index))
+        move_type = self.game.make_move((self.selected_square, square_index))
         if self.game.king_in_check(1 - self.game.current_player_color):
           self.game.undo_move()
 
+        # refactor later with all the different move types
+        if move_type == "capture" or move_type == "en-passant":
+          playsound("assets/sounds/capture.mp3")
+        else:
+          playsound("assets/sounds/move-self.mp3")
+
+        self.prev_squares = [self.selected_square, square_index]
         self.display_pieces()
         self.reset_selection()
 
-        ai_move = self.computer.minimax(1, self.game, float('-inf'), float('inf'), False)
-        self.game.make_move(ai_move)
-        
-        self.display_pieces()
-        self.reset_selection()
-        return
+        if self.game.is_checkmate():
+          print("checkmate")
+          return
+
+        self.ai_thinking = True
+        threading.Thread(target=self.multithread_minimax).start()
 
       self.reset_selection()
       if piece_type != None:
@@ -99,7 +132,7 @@ class GameWindow(QWidget):
   def show_valid_moves(self):
     for target_pos in self.valid_moves:
       label = self.labels[target_pos]
-      label.setStyleSheet("background-color: rgb(51, 102, 255);")
+      label.setStyleSheet(f"background-color: {'rgba(6, 145, 75, 0.8)'};")
 
   def reset_selection(self):
     self.valid_moves = []
@@ -110,11 +143,11 @@ class GameWindow(QWidget):
   def eventFilter(self, obj, event):
     """Event filter to handle key press for 'u'."""
     if event.type() == QKeyEvent.Type.KeyPress:
-        if isinstance(event, QKeyEvent):
-            if event.key() == Qt.Key.Key_U:
-                self.game.undo_move()
-                self.display_pieces()
-                return True
+      if isinstance(event, QKeyEvent):
+        if event.key() == Qt.Key.Key_U:
+          self.game.undo_move()
+          self.display_pieces()
+          return True
     return super().eventFilter(obj, event)
 
   def reset_highlight(self):
@@ -123,6 +156,8 @@ class GameWindow(QWidget):
       for col in range(8):
         label = self.labels[row * 8 + col]
         if (row + col) % 2 == 0:
-          label.setStyleSheet("background-color: rgb(232, 235, 239);")
+          bg_style = 'rgba(6, 107, 145, 0.8)' if row * 8 + col in self.prev_squares else 'rgb(232, 235, 239)'
+          label.setStyleSheet(f"background-color: {bg_style};")
         else:
-          label.setStyleSheet("background-color: rgb(125, 135, 150);")
+          bg_style = 'rgba(6, 107, 145, 0.8)' if row * 8 + col in self.prev_squares else 'rgb(125, 135, 150)'
+          label.setStyleSheet(f"background-color: {bg_style};")
