@@ -1,6 +1,5 @@
 import time
 from functools import wraps
-from constants.profiler import FUNCTION_NAMES
 from collections import defaultdict
 
 
