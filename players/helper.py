@@ -1,4 +1,4 @@
-from constants.pieces import PIECE_VALUES, PIECE_MAPPING, PIECE_SQUARE_TABLES
+from constants.pieces import PIECE_NAMES, PIECE_VALUES, PIECE_MAPPING, PIECE_SQUARE_TABLES
 
 
 def evaluate_board(board):
@@ -6,8 +6,8 @@ def evaluate_board(board):
 
   # Material Evaluation
   for piece, value in PIECE_VALUES.items():
-    white_count = bin(board[PIECE_MAPPING[piece]]).count('1')
-    black_count = bin(board[PIECE_MAPPING[piece.lower()]]).count('1')
+    white_count = board[PIECE_MAPPING[piece]].bit_count()
+    black_count = board[PIECE_MAPPING[piece.lower()]].bit_count()
     score += (white_count - black_count) * value
 
   # Positional Evaluation
@@ -22,6 +22,21 @@ def evaluate_board(board):
 
   return score
 
+
+def order_moves_mvv_lva(moves, board):
+  def mvv_lva(move):
+    from_pos, target_pos = move
+    piece = board.get_square_piece(from_pos)
+    target = board.get_square_piece(target_pos)
+    
+    if piece != None and target != None:
+      piece_value = PIECE_VALUES[PIECE_NAMES[piece].upper()]
+      target_value = PIECE_VALUES[PIECE_NAMES[target].upper()]
+      return (10 * target_value) - piece_value
+      
+    return -1
+  
+  return sorted(moves, key=mvv_lva, reverse=True)
 
 def print_evaluation_stats(computer):
   moves_skipped = computer.total_moves_found - computer.moves_evaluated

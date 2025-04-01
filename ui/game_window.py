@@ -6,9 +6,13 @@ from PyQt6.QtGui import QPixmap, QKeyEvent
 from playsound import playsound
 
 from game.game import Game
+from game.profiler import Profiler
 from constants.pieces import PIECE_IMAGES
 from players.minimax_player_v0 import ComputerPlayer
 from players.helper import reset_evaluation_stats, print_evaluation_stats
+
+
+SEARCH_DEPTH = 4
 
 
 class GameWindow(QWidget):
@@ -28,7 +32,7 @@ class GameWindow(QWidget):
     self.valid_moves = []
 
   def create_window(self):
-    self.setWindowTitle('8x8 Chess Board')
+    self.setWindowTitle(f'Chess Minimax v2 - Depth ({SEARCH_DEPTH})')
     self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
 
     grid = QGridLayout()
@@ -66,7 +70,7 @@ class GameWindow(QWidget):
         self.labels[square].clear()
 
   def multithread_minimax(self):
-    move = self.computer.minimax(3, self.game, float('-inf'), float('inf'), False)[0]
+    move = self.computer.minimax(SEARCH_DEPTH, self.game, float('-inf'), float('inf'), False)[0]
     move_type = self.game.make_move(move)
     if self.game.is_checkmate():
       print("checkmate")
@@ -77,12 +81,13 @@ class GameWindow(QWidget):
     else:
       playsound("assets/sounds/move-self.mp3")
 
+    self.ai_thinking = False
     self.prev_squares = move
     self.display_pieces()
     self.reset_selection()
+    Profiler.print_profile_summary(self.computer.moves_evaluated)
     print_evaluation_stats(self.computer)
     reset_evaluation_stats(self.computer)
-    self.ai_thinking = False
 
   def handle_square_click(self, row, col):
     def on_click(_):

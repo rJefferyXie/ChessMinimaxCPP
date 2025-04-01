@@ -1,5 +1,6 @@
 from game.bitboard import Board
 from constants.fen import STARTING_BOARD, KIWIPETE, POSITION3
+from game.profiler import Profiler
 
 
 class Game:
@@ -43,7 +44,8 @@ class Game:
 
     return True
 
-  def get_legal_moves(self):
+  @Profiler.profile_function
+  def get_all_moves(self):
     moves = []
     for square in range(64):
       piece_type = self.board.get_square_piece(square)
@@ -55,6 +57,11 @@ class Game:
         for target_pos in self.board.generate_moves(piece_type, square):
           moves.append((square, target_pos))
 
+    return moves
+
+  def get_legal_moves(self):
+    moves = self.get_all_moves()
+
     legal_moves = []
     for move in moves:
       self.make_move(move)
@@ -64,6 +71,7 @@ class Game:
 
     return legal_moves
 
+  @Profiler.profile_function
   def make_move(self, move):
     from_pos, target_pos = move
     piece_type = self.board.get_square_piece(from_pos)
@@ -125,6 +133,7 @@ class Game:
 
     return move_type
 
+  @Profiler.profile_function
   def undo_move(self):
     if not self.last_moves:
       return
@@ -172,6 +181,7 @@ class Game:
     self.board.get_attacking_squares()
     self.current_player_color = 1 - self.current_player_color
 
+  @Profiler.profile_function
   def castle(self, piece_type, piece_color, from_pos, target_pos):
     rook_piece = self.board.get_square_piece(target_pos)
     new_king_pos = None

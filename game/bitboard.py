@@ -1,5 +1,6 @@
 from constants.pieces import PIECE_MAPPING, PIECE_NAMES
 from game.precomputed_moves import direction_offsets, PrecomputeMoveData
+from game.profiler import Profiler
 
 
 class Board:
@@ -69,13 +70,13 @@ class Board:
         if self.get_bit(piece_type, square):
           print(f"Piece: {PIECE_NAMES[piece_type]} at square {i}")
 
+  @Profiler.profile_function
   def get_square_piece(self, index):
-    if not self.is_occupied(index):
-      return None
-
     for piece_type in range(12):
-      if self.get_bit(piece_type, index):
+      if self.bitboard[piece_type] & (1 << index):
         return piece_type
+    
+    return None
 
   def is_attacked(self, color, index):
     if color == 0:  # player is white, check which squares black attacks
@@ -90,6 +91,7 @@ class Board:
   def is_occupied_by_color(self, color, index):
     return (self.pieces_by_color[color] >> index) & 1
 
+  @Profiler.profile_function
   def get_attacking_squares(self):
     self.white_attacking_squares.clear()
     self.black_attacking_squares.clear()
@@ -132,6 +134,7 @@ class Board:
   def is_sliding_piece(self, piece_type):
     return self.is_queen(piece_type) or self.is_rook(piece_type) or self.is_bishop(piece_type)
 
+  @Profiler.profile_function
   def bit_scan(self, bitboard):
     """Extracts move squares from a bitboard."""
     moves = []
@@ -156,6 +159,7 @@ class Board:
     if self.is_king(piece_type):
       return self.generate_king_moves(piece_color, position)
 
+  @Profiler.profile_function
   def generate_sliding_moves(self, color, position):
     moves = 0
     piece_type = self.get_square_piece(position)
@@ -178,6 +182,7 @@ class Board:
 
     return self.bit_scan(moves)
 
+  @Profiler.profile_function
   def generate_pawn_moves(self, color, position):
     pawn_moves = 0
 
@@ -237,6 +242,7 @@ class Board:
 
     return self.bit_scan(pawn_moves)
 
+  @Profiler.profile_function
   def generate_knight_moves(self, color, position):
     knight_offsets = [-17, -15, -10, -6, 6, 10, 15, 17]
     knight_moves = 0
@@ -258,6 +264,7 @@ class Board:
 
     return self.bit_scan(knight_moves)
 
+  @Profiler.profile_function
   def generate_king_moves(self, color, position):
     king_moves = 0
 

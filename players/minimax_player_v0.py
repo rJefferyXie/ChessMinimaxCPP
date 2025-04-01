@@ -1,4 +1,4 @@
-from players.helper import evaluate_board
+from players.helper import evaluate_board, order_moves_mvv_lva
 
 
 class ComputerPlayer:
@@ -16,7 +16,8 @@ class ComputerPlayer:
     best_move = None
     best_score = float("-inf") if is_maximizing else float("inf")
 
-    moves = game.get_legal_moves()
+    moves = game.get_all_moves()
+    moves = order_moves_mvv_lva(moves, game.board)
     self.total_moves_found += len(moves)
 
     for move in moves:
